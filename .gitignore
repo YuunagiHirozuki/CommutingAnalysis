@@ -1,0 +1,6 @@
+data/raw/
+.tmp/
+backend/server.exe
+node_modules/
+dist/
+__pycache__/

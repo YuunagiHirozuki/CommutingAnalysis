@@ -1,0 +1,31 @@
+{
+  "server": { "port": 8080 },
+  "network": {
+    "proxyURL": "http://127.0.0.1:7897"
+  },
+  "data": {
+    "fallback": "../data/test"
+  },
+  "params": {
+    "walkingSpeedKmh": 5,
+    "busSpeedKmh": 20,
+    "metroSpeedKmh": 35,
+    "transferPenaltyMin": 5,
+    "maxWalkingDistanceM": 1500,
+    "entryStationsLimit": 6,
+    "walkLinkMaxM": 200
+  },
+  "grid": {
+    "cellSizeM": 500,
+    "walkRadiusM": 800,
+    "levels": [30, 45, 60]
+  },
+  "cities": [
+    {
+      "code": "guangzhou",
+      "name": "广州",
+      "bbox": [112.9, 22.45, 114.05, 23.95],
+      "dataDir": "../data/guangzhou"
+    }
+  ]
+}
