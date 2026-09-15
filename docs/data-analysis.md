@@ -7,9 +7,9 @@
 ## 1. 数据组织
 
 数据集为全国单 zip(2.16GB,8361 个文件),按 `{city_en}_{bus|metro}_{routes|segments|stops|stops_unique}.shp` 组织。
-广州文件(仅解压广州,符合 AGENTS.md 第四节要求):
+为减少空间，仅以广州为例:
 
-```
+```ps
 CPTOND-2025/dataset/bus/shapefiles/Guangzhou/
     guangzhou_bus_routes.shp          2612 条线路(LineString)
     guangzhou_bus_segments.shp        26266 条站间连接(LineString)
@@ -24,22 +24,22 @@ CPTOND-2025/dataset/metro/shapefiles/Guangzhou/
 
 ## 2. 十四项检查结论
 
-| # | 检查项 | 结论 |
-|---|---|---|
-| 1 | 广州公交数据位置 | `dataset/bus/shapefiles/Guangzhou/`(按城市名分目录) |
-| 2 | 广州地铁数据位置 | `dataset/metro/shapefiles/Guangzhou/` |
-| 3 | 实际字段 | 见下表 |
-| 4 | 坐标系 | EPSG:4326(WGS-84),无需转换 |
-| 5 | stop ID 类型 | 字符串 `BV########`(如 BV09199365),公交/地铁统一前缀 |
-| 6 | segment 起终点字段 | `s_stopid` / `e_stopid` |
-| 7 | distance 单位 | **公里**(float;地铁均值 2.03、公交中位 0.64 → km) |
-| 8 | 重复站点 | `stops_unique` 无重复(stop_id 唯一);`stops` 为线路×站点长表 |
-| 9 | 公交/地铁 ID 冲突 | 无重叠(公交 10143 与地铁 409 的 BV ID 完全不相交) |
-| 10 | 跨线路共享站点 | 存在,由 `stops_unique` 天然合并为图节点 |
-| 11 | 广佛跨城线路 | 广州包内 `city_cn` 全部为「广州」,无佛山站点 |
-| 12 | 数据量 | 公交站 10143 + 地铁站 409;segments 26266 + 982 |
-| 13 | 缺失值 | routes 的 company/start_time 等有缺失,**stops/segments 关键字段(stop_id/坐标/distance)无缺失** |
-| 14 | 异常距离 | 公交 179 条 distance≤0(取几何长度修复 9 条,其余多为自环/重复丢弃)、无 >5km 站间(仅线路全长字段超) |
+| #   | 检查项             | 结论                                                                                              |
+| --- | ------------------ | ------------------------------------------------------------------------------------------------- |
+| 1   | 广州公交数据位置   | `dataset/bus/shapefiles/Guangzhou/`(按城市名分目录)                                               |
+| 2   | 广州地铁数据位置   | `dataset/metro/shapefiles/Guangzhou/`                                                             |
+| 3   | 实际字段           | 见下表                                                                                            |
+| 4   | 坐标系             | EPSG:4326(WGS-84),无需转换                                                                        |
+| 5   | stop ID 类型       | 字符串 `BV########`(如 BV09199365),公交/地铁统一前缀                                              |
+| 6   | segment 起终点字段 | `s_stopid` / `e_stopid`                                                                           |
+| 7   | distance 单位      | **公里**(float;地铁均值 2.03、公交中位 0.64 → km)                                                 |
+| 8   | 重复站点           | `stops_unique` 无重复(stop_id 唯一);`stops` 为线路×站点长表                                       |
+| 9   | 公交/地铁 ID 冲突  | 无重叠(公交 10143 与地铁 409 的 BV ID 完全不相交)                                                 |
+| 10  | 跨线路共享站点     | 存在,由 `stops_unique` 天然合并为图节点                                                           |
+| 11  | 广佛跨城线路       | 广州包内 `city_cn` 全部为「广州」,无佛山站点                                                      |
+| 12  | 数据量             | 公交站 10143 + 地铁站 409;segments 26266 + 982                                                    |
+| 13  | 缺失值             | routes 的 company/start_time 等有缺失,**stops/segments 关键字段(stop_id/坐标/distance)无缺失**    |
+| 14  | 异常距离           | 公交 179 条 distance≤0(取几何长度修复 9 条,其余多为自环/重复丢弃)、无 >5km 站间(仅线路全长字段超) |
 
 ## 3. 关键字段明细
 
@@ -63,6 +63,8 @@ CPTOND-2025/dataset/metro/shapefiles/Guangzhou/
 5. 产出 `data/guangzhou/nodes.json`(1.3MB)、`edges.json`(1.7MB)
 
 ## 6. Go 端建图结果(实测)
+
+以下统计和处理结果以广州数据为例,用于验证提取脚本和图数据生成流程;同一流程可用于其他城市。
 
 ```
 节点 10552 / 有向弧 34366(平行边去重后,无向边≈17183)

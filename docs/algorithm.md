@@ -18,15 +18,15 @@
 
 所有参数可配置(`backend/config/config.json`),默认值:
 
-| 参数 | 默认值 | 说明 |
-|---|---|---|
-| `walkingSpeedKmh` | 5 | 步行速度 |
-| `busSpeedKmh` | 20 | 公交平均运行速度 |
-| `metroSpeedKmh` | 35 | 地铁平均运行速度 |
-| `transferPenaltyMin` | 5 | 换乘/上车固定附加时间 |
-| `maxWalkingDistanceM` | 1500 | 附近站点查询接口的默认半径(接入计算不再设上限) |
-| `walkLinkMaxM` | 200 | 站点步行接驳边距离上限(同站异ID/换乘),0=关闭 |
-| `entryStationsLimit` | 6 | 最多取几个附近站作为多源起点 |
+| 参数                  | 默认值 | 说明                                           |
+| --------------------- | ------ | ---------------------------------------------- |
+| `walkingSpeedKmh`     | 5      | 步行速度                                       |
+| `busSpeedKmh`         | 20     | 公交平均运行速度                               |
+| `metroSpeedKmh`       | 35     | 地铁平均运行速度                               |
+| `transferPenaltyMin`  | 5      | 换乘/上车固定附加时间                          |
+| `maxWalkingDistanceM` | 1500   | 附近站点查询接口的默认半径(接入计算不再设上限) |
+| `walkLinkMaxM`        | 200    | 站点步行接驳边距离上限(同站异ID/换乘),0=关闭   |
+| `entryStationsLimit`  | 6      | 最多取几个附近站作为多源起点                   |
 
 边权折算(分钟):
 
@@ -66,7 +66,7 @@ sources = { stop_i: haversine(p, stop_i)/v_walk + penalty  |  i ∈ 最近的 en
 
 - 二叉最小堆(`container/heap`)优先队列,懒删除(出堆时与 `dist[]` 比对,过期跳过)
 - 剪枝:`dist + edge > maxTime` 的节点不入堆,提前终止
-- 复杂度 `O((|V|+|E|) log|V|)`,广州全图毫秒级完成
+- 复杂度 `O((|V|+|E|) log|V|)`,单城市全图毫秒级完成
 
 ## 5. 空间网格法
 
@@ -77,8 +77,8 @@ sources = { stop_i: haversine(p, stop_i)/v_walk + penalty  |  i ∈ 最近的 en
 3. 每个网格中心 `c`,在步行半径 `walkRadiusM`(默认 800m)内找站点:
    `time(c) = min_i( dijkstra_time(stop_i) + haversine(c, stop_i)/v_walk )`
 4. `time(c) ≤ T` 的网格即为可达区域成员(网格计算上限为最后一个分级阈值,
-   即 60 分钟:超过部分不遍历、不生成、不返回,90 分钟档仅按 maxTime 统计可达站点数)
-5. 分级:`[0,30] → 等级1, (30,45] → 2, (45,60] → 3`(共三级,对应前端三色图例)
+   即 90 分钟:超过部分不遍历、不生成、不返回)
+5. 分级:`[0,30] → 等级1, (30,45] → 2, (45,60] → 3, (60,90] → 4`(共四级,对应前端四色图例)
 
 **网格可达性完全由公共交通网络计算出的可达时间决定**(Dijkstra 结果 +
 末段步行接入),不使用凸包/外包络/空间插值。河流、山体等地理阻隔因此被
