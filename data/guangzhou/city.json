@@ -1,0 +1,16 @@
+{
+  "code": "guangzhou",
+  "name": "广州",
+  "bbox": [
+    112.440054,
+    22.519337,
+    114.041142,
+    23.916905
+  ],
+  "nodeCount": 10552,
+  "edgeCount": 26966,
+  "modes": [
+    "bus",
+    "metro"
+  ]
+}

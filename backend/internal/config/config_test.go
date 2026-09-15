@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"testing"
 )
@@ -62,5 +63,67 @@ func TestLoadInvalidCities(t *testing.T) {
 		if _, err := Load(p); err == nil {
 			t.Fatalf("%s 应报错", tc.name)
 		}
+	}
+}
+
+func TestLoadAutoDiscoverCities(t *testing.T) {
+	root := t.TempDir()
+
+	cityDir := root + "/guangzhou"
+	if err := os.MkdirAll(cityDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	cityJSON := `{
+		"code": "guangzhou",
+		"name": "广州",
+		"bbox": [112.9, 22.45, 114.05, 23.95],
+		"nodeCount": 100,
+		"edgeCount": 200,
+		"modes": ["bus", "metro"]
+	}`
+
+	if err := os.WriteFile(
+		cityDir+"/city.json",
+		[]byte(cityJSON),
+		0644,
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	configJSON := fmt.Sprintf(`{
+		"server": {"port": 8080},
+		"data": {
+			"root": %q,
+			"fallback": "../data/test"
+		},
+		"params": {
+			"walkingSpeedKmh": 5,
+			"busSpeedKmh": 20,
+			"metroSpeedKmh": 35,
+			"transferPenaltyMin": 5,
+			"maxWalkingDistanceM": 1500,
+			"entryStationsLimit": 6
+		},
+		"grid": {
+			"cellSizeM": 500,
+			"walkRadiusM": 800,
+			"levels": [30,45,60,90]
+		}
+	}`, root)
+
+	p := writeTmp(t, configJSON)
+
+	c, err := Load(p)
+	if err != nil {
+		t.Fatalf("自动发现城市失败: %v", err)
+	}
+
+	if len(c.Cities) != 1 {
+		t.Fatalf("期望发现 1 个城市,实际 %d", len(c.Cities))
+	}
+
+	if c.Cities[0].Code != "guangzhou" {
+		t.Fatalf("城市 code 错误: %s", c.Cities[0].Code)
 	}
 }
