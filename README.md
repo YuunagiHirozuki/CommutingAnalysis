@@ -40,7 +40,7 @@ CommutingAnalysis/
 # https://figshare.com/articles/dataset/CPTOND-2025/29377427
 ```
 
-**新增城市流程(零代码改动,脚本城市通用):**
+**新增城市流程:**
 
 ```PowerShell
 # 1. 从 CPTOND-2025.zip 解压目标城市文件到 data/raw/unpacked/
