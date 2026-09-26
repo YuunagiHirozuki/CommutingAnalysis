@@ -5,6 +5,7 @@
 生成等时可达区域,通过 Vue3 + Leaflet 实现 Web 地图可视化。
 
 > ⚠ 系统输出为**理论可达区域**(基于网络拓扑与平均速度模型估算),**不是实时导航结果**。
+> 由于缺少实际道路网络数据，起点至站点的步行距离采用 Haversine 直线距离近似，因此与实际步行路线存在一定误差。
 
 ## 项目结构
 
@@ -12,7 +13,7 @@
 CommutingAnalysis/
 ├── backend/                  Go 后端(Gin + 图算法)
 │   ├── cmd/server/           入口
-│   ├── internal/graph/       图模型 + 优先队列 + 多源 Dijkstra(自研)
+│   ├── internal/graph/       图模型 + 优先队列 + 多源 Dijkstra
 │   ├── internal/geo/         Haversine / 网格空间索引 / GeoJSON
 │   ├── internal/service/     图加载 + 可达区域引擎
 │   ├── internal/api/         REST 路由
@@ -26,7 +27,11 @@ CommutingAnalysis/
 │       └── extract_city.py       任意城市提取 + 图数据生成(Phase 1)
 ├── data/
 │   ├── raw/CPTOND-2025.zip   原始数据集(2.16GB,Figshare)
-│   ├── guangzhou/            预处理产物(含 city.json, Go 加载)
+│   ├── <city>/               预处理产物
+│   ├── city.json
+│   ├── nodes.json
+│   ├── edges.json
+│   ├── network.geojson
 │   └── test/                 TEST DATA(合成网络,后端回退用)
 └── docs/                     data-analysis / architecture / algorithm
 ```
@@ -64,7 +69,7 @@ cd .\data-processing\
 python scripts/extract_city.py ../data/raw/unpacked `
     --all `
     --out-root ../data
-# 4.重启后端, 程序将自动扫描 data/ 下的城市数据并加载
+# 4.重启后端, 程序将自动扫描 data/ 下各城市目录，根据 city.json 自动生成城市配置
 ```
 
 ### 2. 启动
@@ -76,7 +81,7 @@ go run ./cmd/server -config config/config.json
 ```
 
 ```PowerShell
-cd .\backend\
+cd .\frontend\
 pnpm install
 pnpm run dev
 # 打开 http://localhost:5173
@@ -94,6 +99,7 @@ pnpm run dev
 2. 地名搜索(如"广州塔")或地图单击选择起点
 3. 选择最大时间 30/45/60/90 分钟
 4. 点击「计算可达区域」,查看分色网格与入口站点
+5. 可选显示公共交通线路网络、卫星图切换。
 
 ## 测试
 
