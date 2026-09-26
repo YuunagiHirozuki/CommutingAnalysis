@@ -105,7 +105,7 @@ func TestCellsToGeoJSON(t *testing.T) {
 		t.Fatalf("FeatureCollection 结构错误")
 	}
 	f := fc.Features[0]
-	ring := f.Geometry.Coordinates[0]
+	ring := f.Geometry.Coordinates.([][][]float64)[0]
 	if len(ring) != 5 {
 		t.Fatalf("多边形环应有 5 个点(含闭合),实际 %d", len(ring))
 	}

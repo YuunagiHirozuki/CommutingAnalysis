@@ -107,7 +107,49 @@ func TestIsochroneNoBridge(t *testing.T) {
 	}
 }
 
-// TestWalkLinkConnectsSameStop 站点接驳:同物理站点的两个异 ID 停靠点
+// TestIsochroneNetworkToggle:includeNetwork=true 时返回可达站点间的
+// bus/metro 连线(无向去重);false 时不返回网络数据。
+func TestIsochroneNetworkToggle(t *testing.T) {
+	// 跨河场景桥接通后:可达站点 A1,A2,B1,B2,可达线路恰为 3 条
+	nodes := []graph.Node{
+		{ID: 1, Name: "A1", Lat: 23.10, Lon: 113.455, Type: "bus", City: "TEST"},
+		{ID: 2, Name: "A2", Lat: 23.10, Lon: 113.465, Type: "bus", City: "TEST"},
+		{ID: 3, Name: "B1", Lat: 23.10, Lon: 113.510, Type: "bus", City: "TEST"},
+		{ID: 4, Name: "B2", Lat: 23.10, Lon: 113.520, Type: "bus", City: "TEST"},
+	}
+	edges := []graph.Edge{
+		{From: 1, To: 2, DistanceM: 1023, Mode: "bus"},
+		{From: 2, To: 3, DistanceM: 4604, Mode: "bus"},
+		{From: 3, To: 4, DistanceM: 1023, Mode: "bus"},
+		// 一条两端均可达的重复平行边(不同线路),应被去重
+		{From: 2, To: 3, DistanceM: 4700, Mode: "bus"},
+		// walk 接驳边,不应出现在线路展示中
+		{From: 1, To: 2, DistanceM: 50, Mode: "walk"},
+	}
+	p := graph.SpeedParams{WalkingSpeedKmh: 5, BusSpeedKmh: 20, MetroSpeedKmh: 35, TransferPenaltyMin: 5, WalkLinkMaxM: 0}
+	gg, err := graph.Build(nodes, edges, p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	times := gg.MultiSourceDijkstra(map[int64]float64{1: 0}, 60)
+	if len(times) != 4 {
+		t.Fatalf("应有 4 个可达站点,实际 %d", len(times))
+	}
+
+	eng := &Engine{Graph: gg, Edges: edges, Cfg: testConfig("")}
+	network := eng.ReachableNetwork(times)
+	if len(network.Features) != 3 {
+		t.Fatalf("可达线路应去重为 3 条,实际 %d", len(network.Features))
+	}
+	for _, f := range network.Features {
+		if f.Geometry.Type != "LineString" {
+			t.Fatalf("线路几何应为 LineString,实际 %s", f.Geometry.Type)
+		}
+		if m := f.Properties["mode"].(string); m != "bus" {
+			t.Fatalf("线路 mode 应为 bus(walk 不展示),实际 %s", m)
+		}
+	}
+}
 // (相距 8m,如 CPTOND 的 "客村"/"珠影(地铁客村站)")应通过 walk 边连通,
 // 且接驳代价包含换乘惩罚,永远不会比乘车边快。
 func TestWalkLinkConnectsSameStop(t *testing.T) {

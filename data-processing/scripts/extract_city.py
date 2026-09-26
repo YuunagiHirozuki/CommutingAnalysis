@@ -90,7 +90,7 @@ from pathlib import Path
 import geopandas as gpd
 import pandas as pd
 from pyproj import Geod
-
+from shapely.geometry import mapping
 
 GEOD = Geod(ellps="WGS84")
 
@@ -361,6 +361,7 @@ def extract_one_city(
 
     nodes: list[dict] = []
     edges: list[dict] = []
+    network_features: list[dict] = []
 
     # 原始 stop_id -> 内部 int id
     id_map: dict[str, int] = {}
@@ -472,7 +473,7 @@ def extract_one_city(
                 }
             )
 
-        n_added += 1
+            n_added += 1
 
         print(
             f"[{mode}] 站点 {len(su)}，"
@@ -608,14 +609,34 @@ def extract_one_city(
                 n_drop += 1
                 continue
 
+            from_id = id_map[f]
+            to_id = id_map[t]
+
             edges.append(
                 {
-                    "from": id_map[f],
-                    "to": id_map[t],
+                    "from": from_id,
+                    "to": to_id,
                     "distance_m": round(d_m, 1),
                     "mode": mode,
                 }
             )
+
+            # 保存原始线路几何，供地图可视化使用
+            if geometry is not None and not geometry.is_empty:
+                try:
+                    network_features.append(
+                        {
+                            "type": "Feature",
+                            "properties": {
+                                "from": from_id,
+                                "to": to_id,
+                                "mode": mode,
+                            },
+                            "geometry": mapping(geometry),
+                        }
+                    )
+                except Exception:
+                    pass
 
         print(
             f"[{mode}] segments {len(seg)}，"
@@ -657,7 +678,8 @@ def extract_one_city(
     nodes_path = out_dir / "nodes.json"
     edges_path = out_dir / "edges.json"
     city_path = out_dir / "city.json"
-
+    network_path = out_dir / "network.geojson"
+    
     nodes_path.write_text(
         json.dumps(
             nodes,
@@ -683,6 +705,17 @@ def extract_one_city(
         encoding="utf-8",
     )
 
+    network_path.write_text(
+        json.dumps(
+            {
+                "type": "FeatureCollection",
+                "features": network_features,
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
     print()
     print(
         f"[done] {city}: "
@@ -691,7 +724,8 @@ def extract_one_city(
     )
     print(f"       bbox = {bbox}")
     print(f"       输出 = {out_dir}")
-
+    print(f"       线路几何 = {network_path}")
+    
 def resolve_output_dir(
     args: argparse.Namespace,
     city: str,

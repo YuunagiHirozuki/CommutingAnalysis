@@ -163,10 +163,11 @@ func ComputeCells(times map[int64]float64, stops []StopRef, cfg GridConfig) []Ce
 
 // ---- GeoJSON 输出 ----
 
-// Geometry GeoJSON 几何(Polygon)。
+// Geometry GeoJSON 几何。Coordinates 用 any 以同时支持
+// Polygon([][][]float64)与 LineString([][]float64)。
 type Geometry struct {
-	Type        string          `json:"type"`
-	Coordinates [][][]float64   `json:"coordinates"`
+	Type        string `json:"type"`
+	Coordinates any    `json:"coordinates"`
 }
 
 // Feature GeoJSON 要素。
@@ -187,12 +188,14 @@ func CellsToGeoJSON(cells []Cell) *FeatureCollection {
 	fc := &FeatureCollection{Type: "FeatureCollection", Features: make([]Feature, 0, len(cells))}
 	for i := range cells {
 		c := &cells[i]
-		ring := [][]float64{
-			{c.MinLon, c.MinLat},
-			{c.MaxLon, c.MinLat},
-			{c.MaxLon, c.MaxLat},
-			{c.MinLon, c.MaxLat},
-			{c.MinLon, c.MinLat}, // 闭合
+		ring := [][][]float64{
+			{
+				{c.MinLon, c.MinLat},
+				{c.MaxLon, c.MinLat},
+				{c.MaxLon, c.MaxLat},
+				{c.MinLon, c.MaxLat},
+				{c.MinLon, c.MinLat}, // 闭合
+			},
 		}
 		fc.Features = append(fc.Features, Feature{
 			Type: "Feature",
@@ -200,7 +203,25 @@ func CellsToGeoJSON(cells []Cell) *FeatureCollection {
 				"time_min": math.Round(c.TimeMin*10) / 10,
 				"level":    c.Level,
 			},
-			Geometry: &Geometry{Type: "Polygon", Coordinates: [][][]float64{ring}},
+			Geometry: &Geometry{Type: "Polygon", Coordinates: ring},
+		})
+	}
+	return fc
+}
+
+// LinesToGeoJSON 把站间连线转为 GeoJSON FeatureCollection(LineString,含交通方式)。
+// lines 为 (起止经纬度, mode) 序列。
+func LinesToGeoJSON(lines [][2][2]float64, modes []string) *FeatureCollection {
+	fc := &FeatureCollection{Type: "FeatureCollection", Features: make([]Feature, 0, len(lines))}
+	for i := range lines {
+		coords := [][]float64{
+			{lines[i][0][0], lines[i][0][1]},
+			{lines[i][1][0], lines[i][1][1]},
+		}
+		fc.Features = append(fc.Features, Feature{
+			Type:       "Feature",
+			Properties: map[string]any{"mode": modes[i]},
+			Geometry:   &Geometry{Type: "LineString", Coordinates: coords},
 		})
 	}
 	return fc

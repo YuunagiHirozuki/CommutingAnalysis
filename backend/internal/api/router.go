@@ -195,10 +195,11 @@ func (s *Server) nearby(c *gin.Context) {
 }
 
 type isochroneReq struct {
-	Latitude  float64 `json:"latitude" binding:"required"`
-	Longitude float64 `json:"longitude" binding:"required"`
-	MaxTime   float64 `json:"maxTime" binding:"required"`
-	City      string  `json:"city"`
+	Latitude       float64 `json:"latitude" binding:"required"`
+	Longitude      float64 `json:"longitude" binding:"required"`
+	MaxTime        float64 `json:"maxTime" binding:"required"`
+	City           string  `json:"city"`
+	IncludeNetwork bool    `json:"includeNetwork"`
 }
 
 func (s *Server) isochrone(c *gin.Context) {
@@ -225,6 +226,7 @@ func (s *Server) isochrone(c *gin.Context) {
 	}
 	result, err := eng.Isochrone(service.IsochroneRequest{
 		Latitude: req.Latitude, Longitude: req.Longitude, MaxTime: req.MaxTime,
+		IncludeNetwork: req.IncludeNetwork,
 	})
 	if err != nil {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
@@ -240,6 +242,7 @@ func (s *Server) isochrone(c *gin.Context) {
 		"gridCells":         result.GridCells,
 		"testData":          result.TestData,
 		"notice":            result.Notice,
+		"network":           result.Network,
 		"geojson":           result.GeoJSON,
 	})
 }

@@ -17,7 +17,9 @@ import (
 type Engine struct {
 	Graph *graph.Graph
 	Index *geo.StopIndex
-	Stops []geo.StopRef // 全量站点(用于最近站查找)
+	Stops []geo.StopRef  // 全量站点(用于最近站查找)
+	Edges []graph.Edge   // 清洗后的原始边(用于线路展示)
+	Network *geo.FeatureCollection	// 原始线路几何，仅用于地图可视化，不参与图算法
 	Cfg   *config.Config
 	City  config.CityConfig
 
@@ -46,6 +48,17 @@ func LoadCity(cfg *config.Config, city config.CityConfig) (*Engine, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	networkPath := filepath.Join(dir, "network.geojson")
+
+	var network geo.FeatureCollection
+
+	if err := readJSON(networkPath, &network); err != nil {
+		return nil, fmt.Errorf("读取 network.geojson 失败: %w", err)
+	}
+
+	eng.Network = &network
+
 	eng.LoadMs = time.Since(start).Milliseconds()
 	return eng, nil
 }
@@ -74,6 +87,7 @@ func buildEngine(cfg *config.Config, city config.CityConfig, nodes []graph.Node,
 		Graph:  g,
 		Index:  geo.BuildStopIndex(stops, cfg.Params.MaxWalkingDistanceM, (city.BBox[1]+city.BBox[3])/2),
 		Stops:  stops,
+		Edges:  edges,
 		Cfg:    cfg,
 		City:   city,
 		LoadMs: 0,
