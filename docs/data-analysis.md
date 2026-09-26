@@ -60,7 +60,12 @@ CPTOND-2025/dataset/metro/shapefiles/Guangzhou/
 2. 边 = `*_segments`(s_stopid→e_stopid),distance km→米
 3. distance≤0 → 用 UTM 49N 投影几何长度替代(公交修复 9 条)
 4. 站间 >10km 或自环 → 丢弃(共 274 条)
-5. 产出 `data/guangzhou/nodes.json`(1.3MB)、`edges.json`(1.7MB)
+5. 产出：  
+    data/`<city>`/city.json  
+    data/`<city>`/nodes.json  
+    data/`<city>`/edges.json  
+    data/`<city>`/network.geojson  
+   nodes.json 与 edges.json 用于 Go 端图算法计算；network.geojson 保存原始站间线路几何，仅用于前端交通线路可视化。
 
 ## 6. Go 端建图结果(实测)
 
@@ -68,8 +73,9 @@ CPTOND-2025/dataset/metro/shapefiles/Guangzhou/
 
 ```
 节点 10552 / 有向弧 34366(平行边去重后,无向边≈17183)
-加载+建图耗时 79ms
-多源 Dijkstra(60min,市中心起点):3502 可达站点,25ms
+# 预处理生成公交/地铁线路边 26966 条；Go 端建图时进一步补充站点间 walk 接驳边，因此最终内存图包含 34366 条有向弧。
+加载+建图耗时约 79ms
+多源 Dijkstra(广州,60min,市中心起点):3502 可达站点,计算耗时约 25ms
 ```
 
 ## 7. 局限说明
