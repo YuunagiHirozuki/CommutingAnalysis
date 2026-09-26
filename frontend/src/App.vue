@@ -101,24 +101,25 @@ const MODE_COLORS: Record<string, { color: string; weight: number }> = {
 };
 
 function updateNetworkLayer(data: IsochroneResp | null) {
+  if (!data?.network || !showNetwork.value) return;
+
   if (networkLayer) {
     networkLayer.remove();
     networkLayer = null;
   }
-  if (!data?.network || !showNetwork.value) return;
+
   networkLayer = L.geoJSON(data.network as unknown as GeoJSON.GeoJsonObject, {
     style: (f) => {
       const mode =
         ((f as GeoJSON.Feature).properties as { mode: string } | undefined)
           ?.mode ?? "bus";
       const s = MODE_COLORS[mode] ?? MODE_COLORS.bus;
-      return { color: s.color, weight: s.weight, opacity: 0.75, fill: false };
-    },
-    onEachFeature: (f, layer) => {
-      const mode =
-        ((f as GeoJSON.Feature).properties as { mode: string } | undefined)
-          ?.mode ?? "bus";
-      layer.bindTooltip(mode === "metro" ? "地铁线路段" : "公交线路段");
+      return {
+        color: s.color,
+        weight: s.weight,
+        opacity: 0.75,
+        fill: false,
+      };
     },
   }).addTo(map);
 }
@@ -127,17 +128,21 @@ watch(showNetwork, (on) => {
   if (!on) {
     if (networkLayer) {
       networkLayer.remove();
-      networkLayer = null;
     }
     return;
   }
-  // 开启时若无网络数据(此前关闭状态下计算),用当前起点静默重算一次
-  if (
-    result.value &&
-    !result.value.network &&
-    picked.value &&
-    !computing.value
-  ) {
+
+  if (networkLayer) {
+    networkLayer.addTo(map);
+    return;
+  }
+
+  if (result.value?.network) {
+    updateNetworkLayer(result.value);
+    return;
+  }
+
+  if (picked.value && !computing.value) {
     compute();
   }
 });
@@ -291,10 +296,6 @@ function render(data: IsochroneResp) {
   if (stationLayer) {
     stationLayer.remove();
     stationLayer = null;
-  }
-  if (networkLayer) {
-    networkLayer.remove();
-    networkLayer = null;
   }
 
   gridLayer = L.geoJSON(data.geojson as unknown as GeoJSON.GeoJsonObject, {
