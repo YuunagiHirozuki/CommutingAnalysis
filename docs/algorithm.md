@@ -24,7 +24,7 @@
 | `busSpeedKmh`         | 20     | 公交平均运行速度                               |
 | `metroSpeedKmh`       | 35     | 地铁平均运行速度                               |
 | `transferPenaltyMin`  | 5      | 换乘/候车固定附加时间                          |
-| `maxWalkingDistanceM` | 1500   | 附近站点查询接口的默认半径(接入计算不再设上限) |
+| `maxWalkingDistanceM` | 1500   | 空间索引格边长(附近站点查询按此分格;接入计算不再设上限) |
 | `walkLinkMaxM`        | 200    | 站点步行接驳边距离上限(同站异ID/换乘),0=关闭   |
 | `entryStationsLimit`  | 6      | 最多取几个附近站作为多源起点                   |
 
@@ -90,8 +90,8 @@ sources = { stop_i: haversine(p, stop_i)/v_walk + penalty  |  i ∈ 最近的 en
 水域宽度大于步行接入半径时不会跨河泄漏(有跨河最小测试用例覆盖:
 `TestIsochroneAcrossRiver` / `TestIsochroneNoBridge`)。
 
-空间检索使用均匀网格哈希索引(按 `maxWalkingDistanceM` 划格,查询 3×3 邻域),
-万级站点规模下无需 R-tree。
+空间检索使用均匀网格哈希索引,万级站点规模下无需 R-tree:附近站点查询按
+`maxWalkingDistanceM`(1500m) 划格;网格化阶段另按 `walkRadiusM`(800m) 划格,均只扫描 3×3 邻域。
 
 ## 6. GeoJSON 输出
 
