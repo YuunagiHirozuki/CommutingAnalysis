@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"backend/internal/config"
+	"backend/internal/geo"
 	"backend/internal/graph"
 )
 
@@ -39,6 +40,32 @@ func writeCity(t *testing.T, dir string, nodes []graph.Node, edges []graph.Edge)
 	}
 	w("nodes.json", nodes)
 	w("edges.json", edges)
+	// network.geojson 与真实预处理产物一致:仅保存公交/地铁线路几何,
+	// 不含 walk 接驳边(接驳边由 Go 建图阶段生成,不属于线路展示数据)。
+	byID := make(map[int64]graph.Node, len(nodes))
+	for _, n := range nodes {
+		byID[n.ID] = n
+	}
+	network := geo.FeatureCollection{Type: "FeatureCollection"}
+	for _, e := range edges {
+		if e.Mode != "bus" && e.Mode != "metro" {
+			continue
+		}
+		fn, okF := byID[e.From]
+		tn, okT := byID[e.To]
+		if !okF || !okT {
+			continue
+		}
+		network.Features = append(network.Features, geo.Feature{
+			Type: "Feature",
+			Properties: map[string]any{"from": e.From, "to": e.To, "mode": e.Mode},
+			Geometry: &geo.Geometry{
+				Type:        "LineString",
+				Coordinates: [][]float64{{fn.Lon, fn.Lat}, {tn.Lon, tn.Lat}},
+			},
+		})
+	}
+	w("network.geojson", network)
 	return config.CityConfig{Code: filepath.Base(dir), Name: filepath.Base(dir), BBox: [4]float64{113, 22, 114, 23.5}, DataDir: dir}
 }
 

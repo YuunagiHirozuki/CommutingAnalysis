@@ -107,8 +107,9 @@ func TestIsochroneNoBridge(t *testing.T) {
 	}
 }
 
-// TestIsochroneNetworkToggle:includeNetwork=true 时返回可达站点间的
-// bus/metro 连线(无向去重);false 时不返回网络数据。
+// TestIsochroneNetworkToggle:可达线路展示基于 network.geojson(预处理产出的
+// 原始公交/地铁线路几何,不含 walk 接驳边);ReachableNetwork 按可达站点过滤,
+// 平行边去重由 graph.Build 在建图阶段完成;includeNetwork=false 时不返回网络数据。
 func TestIsochroneNetworkToggle(t *testing.T) {
 	// 跨河场景桥接通后:可达站点 A1,A2,B1,B2,可达线路恰为 3 条
 	nodes := []graph.Node{
@@ -121,9 +122,9 @@ func TestIsochroneNetworkToggle(t *testing.T) {
 		{From: 1, To: 2, DistanceM: 1023, Mode: "bus"},
 		{From: 2, To: 3, DistanceM: 4604, Mode: "bus"},
 		{From: 3, To: 4, DistanceM: 1023, Mode: "bus"},
-		// 一条两端均可达的重复平行边(不同线路),应被去重
+		// 一条两端均可达的重复平行边(不同线路):建图时被去重,不影响 Dijkstra
 		{From: 2, To: 3, DistanceM: 4700, Mode: "bus"},
-		// walk 接驳边,不应出现在线路展示中
+		// walk 接驳边,不属于线路展示数据(network.geojson 中不存在此类边)
 		{From: 1, To: 2, DistanceM: 50, Mode: "walk"},
 	}
 	p := graph.SpeedParams{WalkingSpeedKmh: 5, BusSpeedKmh: 20, MetroSpeedKmh: 35, TransferPenaltyMin: 5, WalkLinkMaxM: 0}
@@ -136,12 +137,35 @@ func TestIsochroneNetworkToggle(t *testing.T) {
 		t.Fatalf("应有 4 个可达站点,实际 %d", len(times))
 	}
 
-	eng := &Engine{Graph: gg, Edges: edges, Cfg: testConfig("")}
-	network := eng.ReachableNetwork(times)
-	if len(network.Features) != 3 {
-		t.Fatalf("可达线路应去重为 3 条,实际 %d", len(network.Features))
+	// 与预处理产物一致的线路几何:仅 3 条去重后的 bus 站段
+	nm := map[int64]graph.Node{}
+	for _, n := range nodes {
+		nm[n.ID] = n
 	}
-	for _, f := range network.Features {
+	network := geo.FeatureCollection{Type: "FeatureCollection"}
+	for _, e := range edges {
+		if e.Mode != "bus" && e.Mode != "metro" {
+			continue
+		}
+		if e.From == 2 && e.To == 3 && e.DistanceM == 4700 {
+			continue // 平行重复线路不写入 network.geojson
+		}
+		network.Features = append(network.Features, geo.Feature{
+			Type: "Feature",
+			Properties: map[string]any{"from": e.From, "to": e.To, "mode": e.Mode},
+			Geometry: &geo.Geometry{
+				Type:        "LineString",
+				Coordinates: [][]float64{{nm[e.From].Lon, nm[e.From].Lat}, {nm[e.To].Lon, nm[e.To].Lat}},
+			},
+		})
+	}
+
+	eng := &Engine{Graph: gg, Network: &network, Cfg: testConfig("")}
+	result := eng.ReachableNetwork(times)
+	if len(result.Features) != 3 {
+		t.Fatalf("可达线路应为 3 条,实际 %d", len(result.Features))
+	}
+	for _, f := range result.Features {
 		if f.Geometry.Type != "LineString" {
 			t.Fatalf("线路几何应为 LineString,实际 %s", f.Geometry.Type)
 		}
