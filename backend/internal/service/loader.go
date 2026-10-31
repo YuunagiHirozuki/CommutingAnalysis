@@ -15,13 +15,12 @@ import (
 
 // Engine 持有一个城市的已加载公共交通图与空间索引(启动时加载进内存)。
 type Engine struct {
-	Graph *graph.Graph
-	Index *geo.StopIndex
-	Stops []geo.StopRef  // 全量站点(用于最近站查找)
-	Edges []graph.Edge   // 清洗后的原始边(用于线路展示)
-	Network *geo.FeatureCollection	// 原始线路几何，仅用于地图可视化，不参与图算法
-	Cfg   *config.Config
-	City  config.CityConfig
+	Graph   *graph.Graph
+	Index   *geo.StopIndex
+	Stops   []geo.StopRef           // 全量站点(用于最近站查找)
+	Network *geo.FeatureCollection  // 原始线路几何，仅用于地图可视化，不参与图算法
+	Cfg     *config.Config
+	City    config.CityConfig
 
 	IsTest bool  // 是否为 TEST DATA
 	LoadMs int64 // 加载耗时
@@ -87,7 +86,6 @@ func buildEngine(cfg *config.Config, city config.CityConfig, nodes []graph.Node,
 		Graph:  g,
 		Index:  geo.BuildStopIndex(stops, cfg.Params.MaxWalkingDistanceM, (city.BBox[1]+city.BBox[3])/2),
 		Stops:  stops,
-		Edges:  edges,
 		Cfg:    cfg,
 		City:   city,
 		LoadMs: 0,
