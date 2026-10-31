@@ -95,6 +95,9 @@ pnpm run dev
 
 ### 3. 使用
 
+> 说明：地名搜索(/api/geocode)代理 OpenStreetMap Nominatim 外部服务，需要外网访问；
+> 如需代理请在 `backend/config/config.json` 的 `network.proxyURL` 配置。
+
 1. 侧边栏选择城市
 2. 地名搜索(如"广州塔")或地图单击选择起点
 3. 选择最大时间 30/45/60/90 分钟
